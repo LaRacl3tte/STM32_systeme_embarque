@@ -91,10 +91,19 @@ ifeq ($(V),99)
 TGT_LDFLAGS += -Wl,--print-gc-sections
 endif
 
+# workaround a libopencm3 bug
+# when the library is not already built, LIBNAME is empty
+# leading to bad values in LDLIBS (-l) and LIBDEPS ([...]/lib.a)
+ifeq (,$(OPENCM3_LIB))
+LIBNAME = opencm3_$(genlink_family)
+endif
+
+
 # Linker script generator fills this in for us.
 ifeq (,$(DEVICE))
 LDLIBS += -l$(OPENCM3_LIB)
 endif
+
 # nosys is only in newer gcc-arm-embedded...
 #LDLIBS += -specs=nosys.specs
 LDLIBS += -Wl,--start-group -lc -lgcc -lnosys -Wl,--end-group
@@ -144,6 +153,10 @@ $(PROJECT).elf: $(OBJS) $(LDSCRIPT) $(LIBDEPS)
 	@printf "  LD\t$@\n"
 	$(Q)$(LD) $(TGT_LDFLAGS) $(LDFLAGS) $(OBJS) $(LDLIBS) -o $@
 
+$(LIBDEPS):
+	@printf "  OPENCM3\t$@\n"
+	$(Q)$(MAKE) -C $(OPENCM3_DIR) $(addprefix TARGETS=,$(OPENCM3_TARGETS))
+
 %.bin: %.elf
 	@printf "  OBJCOPY\t$@\n"
 	$(Q)$(OBJCOPY) -O binary  $< $@
@@ -169,9 +182,14 @@ else
 		$(NULL)
 endif
 
-clean:
+clean::
 	rm -rf $(BUILD_DIR) $(GENERATED_BINS)
 
-.PHONY: all clean flash
+libclean::
+	$(MAKE) -C $(OPENCM3_DIR) clean
+
+distclean:: libclean clean
+
+.PHONY: all clean flash distclean libclean
 -include $(OBJS:.o=.d)
 
