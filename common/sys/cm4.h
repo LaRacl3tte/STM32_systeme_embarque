@@ -4,7 +4,7 @@
 #include<stdint.h>
 
 #define __STATIC_INLINE static inline
-#define __ASM asm
+#define __ASM __asm__
 #define __CORTEX_M 0x04U
 #define __FPU_PRESENT 1U
 #define __FPU_USED 1U

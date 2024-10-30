@@ -3,10 +3,13 @@
 #include <sys/stat.h>
 #include <sys/times.h>
 #include <sys/unistd.h>
-#include "devices.h"
+#include <libopencm3/stm32/usart.h>
 
 #undef errno
 extern int errno;
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 
 void _exit(int status) {
   while(1);
@@ -27,7 +30,7 @@ int _execve(char *name, char **argv, char **env) {
     return -1;
 }
 
-int _fork() {
+int _fork(void) {
     errno = ENOSYS;
     return -1;
 }
@@ -77,7 +80,7 @@ int _wait(int status) {
  Return current process ID (only one process).
 */
 
-int _getpid() {
+int _getpid(void) {
   return 1;
 }
 
@@ -100,15 +103,15 @@ int _isatty(int file) {
 }
 
 #ifndef STDOUT_USART
-#define STDOUT_USART USART2
+#define STDOUT_USART(REG) USART2_##REG
 #endif
 
 #ifndef STDERR_USART
-#define STDERR_USART USART2
+#define STDERR_USART(REG) USART2_##REG
 #endif
 
 #ifndef STDIN_USART
-#define STDIN_USART USART2
+#define STDIN_USART(REG) USART2_##REG
 #endif
 
 /*
@@ -123,9 +126,9 @@ int _read(int file, char *ptr, int len) {
     switch (file) {
     case STDIN_FILENO:
         for (n = 0; n < len; n++) {
-	  while ((STDIN_USART.SR & (1<<5)) == 0) {}
-            *ptr++ = STDIN_USART.DR & 0xff;
-            num++;
+	  while ((STDIN_USART(SR) & (1<<5)) == 0) {}
+	  *ptr++ = STDIN_USART(DR) & 0xff;
+	  num++;
         }
         break;
     default:
@@ -147,15 +150,15 @@ int _write(int file, char *ptr, int len) {
     case STDOUT_FILENO: /* stdout */
         for (n = 0; n < len; n++) {
 
-    	  while ((STDOUT_USART.SR & (1<<7)) == 0) {}
-          STDOUT_USART.DR = *ptr++;
+    	  while ((STDOUT_USART(SR) & (1<<7)) == 0) {}
+          STDOUT_USART(DR) = *ptr++;
         }
         break;
     case STDERR_FILENO: /* stderr */
         for (n = 0; n < len; n++) {
 
-    	  while ((STDERR_USART.SR & (1<<7)) == 0) {}
-          STDERR_USART.DR = *ptr++;
+    	  while ((STDERR_USART(SR) & (1<<7)) == 0) {}
+          STDERR_USART(DR) = *ptr++;
         }
         break;
     default:
@@ -173,14 +176,14 @@ int _write(int file, char *ptr, int len) {
 
 caddr_t _sbrk(int incr) {
 
-    extern char __heap_bottom; /* Defined by the linker */
-    static char *heap_top=&__heap_bottom;
+    extern char _ebss; /* Defined by the linker */
+    static char *heap_top=&_ebss;
 
     char *prev_heap_top=heap_top;
 
     register char * stack_bottom ;
 
-    asm volatile ("MRS %0, msp\n" : "=r" (stack_bottom) );
+    __asm__ __volatile__ ("MRS %0, msp\n" : "=r" (stack_bottom) );
 
      if (heap_top + incr + 0x100 > stack_bottom)
      {
@@ -202,3 +205,5 @@ caddr_t _sbrk(int incr) {
 
 char *__env[1] = { 0 };
 char **environ = __env;
+
+#pragma GCC diagnostic pop

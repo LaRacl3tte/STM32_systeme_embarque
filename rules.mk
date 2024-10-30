@@ -64,14 +64,14 @@ GENERATED_BINS = $(PROJECT).elf $(PROJECT).bin $(PROJECT).map $(PROJECT).list $(
 
 TGT_CPPFLAGS += -MD
 TGT_CPPFLAGS += -Wall -Wundef $(INCLUDES)
-TGT_CPPFLAGS += $(INCLUDES) $(OPENCM3_DEFS)
+TGT_CPPFLAGS += $(INCLUDES) $(OPENCM3_DEFS) -DPLATFORM=$(DEVICE)
 
 TGT_CFLAGS += $(OPT) $(CSTD) -ggdb3
 TGT_CFLAGS += $(ARCH_FLAGS)
 TGT_CFLAGS += -fno-common
 TGT_CFLAGS += -ffunction-sections -fdata-sections
 TGT_CFLAGS += -Wextra -Wshadow -Wno-unused-variable -Wimplicit-function-declaration
-TGT_CFLAGS += -Wredundant-decls -Wstrict-prototypes -Wmissing-prototypes
+TGT_CFLAGS += -Wredundant-decls -Wstrict-prototypes
 
 TGT_CXXFLAGS += $(OPT) $(CXXSTD) -ggdb3
 TGT_CXXFLAGS += $(ARCH_FLAGS)
@@ -153,7 +153,7 @@ $(PROJECT).elf: $(OBJS) $(LDSCRIPT) $(LIBDEPS)
 	@printf "  LD\t$@\n"
 	$(Q)$(LD) $(TGT_LDFLAGS) $(LDFLAGS) $(OBJS) $(LDLIBS) -o $@
 
-$(LIBDEPS):
+libopencm3 $(LIBDEPS):
 	@printf "  OPENCM3\t$@\n"
 	$(Q)$(MAKE) -C $(OPENCM3_DIR) $(addprefix TARGETS=,$(OPENCM3_TARGETS))
 
