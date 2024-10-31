@@ -1,0 +1,19 @@
+# stm32 discovery boards, with onboard st/linkv1
+# ie, STM32VL
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="3744", \
+    OWNER:="root", GROUP:="plugdev",MODE:="0666", \
+    SYMLINK+="stlinkv1_%n"
+
+# stm32 nucleo boards, with onboard st/linkv2-1
+# ie, STM32F0, STM32F4.
+# STM32VL has st/linkv1, which is quite different
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="374b", \
+    OWNER:="root", GROUP:="plugdev",MODE:="0666", \
+    SYMLINK+="stlinkv2-1_%n"
+
+# stm32 discovery boards, with onboard st/linkv2
+# ie, STM32L, STM32F4.
+# STM32VL has st/linkv1, which is quite different
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="3748", \
+    OWNER:="root", GROUP:="plugdev",MODE:="0666", \
+    SYMLINK+="stlinkv2_%n"
