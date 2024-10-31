@@ -1,0 +1,219 @@
+#!/bin/bash
+
+set -e
+
+PROGNAME="$(basename "$0")"
+PROGDIR="$(dirname "$(realpath $0)")"
+
+usage() {
+    cat <<EOF
+usage: $PROGNAME [options...]
+OPTIONS:
+  --help|-h           This help
+  --program|-p PROG   Program to load on the board
+  --mode|-m MODE      Mode can be flash (or load), gdb, or ddd
+  --file|-f FILE      Config file provided to openocd
+  --openocd|-o OPT    Option passed to openocd
+  --gdb|-g OPT        Option passed to gdb
+  --ddd|-d OPT        Option passed to ddd
+  --dry-run|-n        Just print the command, do not run it
+  [options]           Option for invoked program
+
+Note: when OPT is binary=PROG, then PROG is used to invoke openocd, gdb or ddd
+
+EOF
+}
+
+#TEMP=`getopt --shell sh \
+#        -o hnp:m:f:o:g:d: --long help,program:,mode:,file:,openocd:,gdb:,ddd:,dry-run \
+#        -n "$PROGNAME" -- "$@"`
+#
+#eval set -- "$TEMP"
+
+declare -a OPT_OPENOCD OPT_GDB OPT_DDD OPT_OTHER
+
+TMPPROG=
+
+do-exit() {
+	if [ -n "$TMPPROG" ]; then
+		rm -rf "$TMPPROG" || true
+	fi
+}
+
+trap do-exit EXIT
+
+error() {
+    echo "*** E: $1" 1>&2
+    exit 1
+}
+
+log() {
+    echo "=== $1 ===" 1>&2
+}
+
+warn() {
+    echo "*** W: $1" 1>&2
+}
+
+OPENOCD_BIN=
+GDB_BIN=
+DDD_BIN=
+MODE=
+BIN=
+GDBSLAVE=false
+
+handle-opt() {
+    local TYPE="$1"
+    shift
+    if [ -z "$TYPE" ]; then
+	case "$MODE" in
+	    flash|load) TYPE=OPENOCD ;;
+	    gdb) TYPE=GDB ;;
+	    ddd) TYPE=DDD ;;
+	    "") TYPE=OTHER ;;
+	    *) usage 1>&2 ; error "Invalid mode $MODE" ;;
+	esac 
+    fi
+    if [ "$#" = 1 ]; then
+	case "$1" in
+	    binary=*)
+		eval "$TYPE"_BIN='"${1#binary=}"'
+		return ;;
+	esac
+    fi
+    eval OPT_"$TYPE"+='( "$@" )'
+}
+
+run() {
+    local FINAL=false
+    if [ "$1" = "--final" ]; then
+	shift
+	FINAL=true
+    fi
+    if ! $DRYRUN; then
+	printf "Running: " 1>&2
+    fi
+    getopt --shell sh -o "" -- -- "$@" | cut -c 5- 1>&2
+    if ! $DRYRUN; then
+	if $FINAL; then
+	    exec "$@"
+	else
+	    "$@"
+	fi
+    fi
+}
+
+prepare-flash() {
+    if [ -z "$OPENOCD_BIN" ]; then
+	OPENOCD_BIN=openocd
+    fi
+    if ! command -v "$OPENOCD_BIN" >/dev/null; then
+	error "Cannot find openocd (as $OPENOCD_BIN). Did you install it?"
+    fi
+}
+
+run-flash() {
+    if ! $DRYRUN ; then
+	# try to join a running openocd instance
+	if echo "halt; program $BIN verify reset" \
+		| nc -4 localhost 4444 2>/dev/null; then
+	    return
+	fi
+    fi
+    run --final "$OPENOCD_BIN" "${OPT_OPENOCD[@]}" \
+	-c "program $BIN verify reset exit"
+}
+
+prepare-gdb() {
+    if [ -z "$GDB_BIN" ]; then
+	if command -v arm-none-eabi-gdb >/dev/null; then
+	    GDB_BIN=arm-none-eabi-gdb
+	elif command -v gdb-multiarch >/dev/null; then
+            GDB_BIN=gdb-multiarch
+	else
+            error "Cannot find gdb. Please install gdb-arm-none-eabi or gdb-multiarch"
+	fi
+    elif ! command -v "$GDB_BIN" >/dev/null; then
+	error "Cannot find gdb (as $GDB_BIN). Did you install it?"
+    fi
+}   
+
+run-gdb() {
+    TMPPROG="$(mktemp -d --tmpdir board.XXXXXXXXXX)"
+    local GDBDEBUGSCRIPT="$TMPPROG/debug-script.gdb"
+
+    sed < "$PROGDIR/debug-script.gdb.in" > "$GDBDEBUGSCRIPT" \
+	-e "s,@OPENOCD_BIN@,${OPENOCD_BIN}," \
+	-e "s,@OPENOCD_OPT@,$(DRYRUN=true run "${OPT_OPENOCD[@]}" 2>&1 | sed -e 's/\([,\\]\)/\\\1/g'),"
+
+    # no --final: $TMPPROG must be removed
+    run "$GDB_BIN" "${OPT_GDB[@]}" -silent -x "$GDBDEBUGSCRIPT" "$BIN"
+}
+
+prepare-ddd() {
+    if [ -z "$DDD_BIN" ]; then
+	DDD_BIN=ddd
+    fi
+    if ! command -v "$DDD_BIN" >/dev/null; then
+	error "Cannot find ddd (as $DDD_BIN). Did you install it?"
+    fi
+}
+
+run-ddd() {
+    run --final "$DDD_BIN" "${OPT_DDD[@]}" --debugger "$0 --mode gdb --gdbslave" "$BIN"
+}
+
+
+main-opt() {
+    while [ $# != 0 ]; do
+	case "$1" in
+            -h|--help) usage ; exit 0 ;;
+	    --program|-p) BIN="$2" ; shift ;;
+	    --file|-f) handle-opt OPENOCD --file "$2" ; shift ;;
+	    --openocd|-o) handle-opt OPENOCD "$2" ; shift ;;
+	    --gdb|-g) handle-opt GDB "$2" ; shift ;;
+	    --ddd|-d) handle-opt DDD "$2" ; shift ;;
+	    --mode|-m) MODE="$2"
+		       handle-opt "" "${OPT_OTHER[@]}"
+		       OPT_OTHER=()
+		       shift ;;
+	    --dry-run|-n) DRYRUN=true ;;
+	    --gdbslave) GDBSLAVE=true ;;
+            --) shift
+		handle-opt "" "$@"
+		break ;;
+	    *) handle-opt "" "$1" ;;
+	esac
+	shift;
+    done
+}
+
+MODE=
+DRYRUN=false
+main-opt "$@"
+if [ -z "$MODE" ]; then
+    main-opt --mode flash --
+fi
+
+if [ -z "$BIN" -a "$GDBSLAVE" = false ]; then
+    usage 1>&2
+    error "No program specified"
+fi
+
+case "$MODE" in
+    flash|load)
+	prepare-flash
+	run-flash ;;
+    gdb)
+	prepare-flash
+	prepare-gdb
+	run-gdb;;
+    ddd)
+	prepare-flash
+	prepare-gdb
+	prepare-ddd
+	run-ddd;;
+    *) usage 1>&2 ; error "Invalid mode $MODE" ;;
+esac
+
+	

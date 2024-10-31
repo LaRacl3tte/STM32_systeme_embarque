@@ -53,6 +53,7 @@ OBJDUMP	= $(PREFIX)objdump
 OOCD	?= openocd
 
 OPENCM3_INC = $(OPENCM3_DIR)/include
+RULESDIR := $(dir $(lastword $(MAKEFILE_LIST)))
 
 # Inclusion of library header files
 INCLUDES += $(patsubst %,-I%, . $(OPENCM3_INC) )
@@ -120,7 +121,9 @@ LDLIBS += -Wl,--start-group -lc -lgcc -lnosys -Wl,--end-group
 %: SCCS/s.%
 
 all: $(PROJECT).elf $(PROJECT).bin
-flash: $(PROJECT).flash
+flash load: $(PROJECT).flash
+gdb: $(PROJECT).gdb
+ddd: $(PROJECT).ddd
 
 # error if not using linker script generator
 ifeq (,$(DEVICE))
@@ -167,20 +170,22 @@ libopencm3 $(LIBDEPS):
 %.list: %.elf
 	$(OBJDUMP) -S $< > $@
 
-%.flash: %.elf
-	@printf "  FLASH\t$<\n"
-ifeq (,$(OOCD_FILE))
-	$(Q)(echo "halt; program $(realpath $(*).elf) verify reset" | nc -4 localhost 4444 2>/dev/null) || \
-		$(OOCD) -f interface/$(OOCD_INTERFACE).cfg \
-		-f target/$(OOCD_TARGET).cfg \
-		-c "program $(realpath $(*).elf) verify reset exit" \
-		$(NULL)
-else
-	$(Q)(echo "halt; program $(realpath $(*).elf) verify reset" | nc -4 localhost 4444 2>/dev/null) || \
-		$(OOCD) -f $(OOCD_FILE) \
-		-c "program $(realpath $(*).elf) verify reset exit" \
-		$(NULL)
-endif
+define board-cmd # 1:ext 2:mode 3:redir
+%.$1: %.elf
+	@printf "  FLASH\t$$<\n"
+	$$(Q)$$(RULESDIR)/devtools/board-run -p "$$(realpath $$(*).elf)" -m $2 -o binary=$$(OOCD) \
+		$$(if $$(OOCD_FILE),\
+			-f $$(OOCD_FILE) \
+		,\
+			-f interface/$$(OOCD_INTERFACE).cfg \
+			-f target/$$(OOCD_TARGET).cfg \
+		)\
+		$3
+endef
+
+$(eval $(call board-cmd,flash,flash,$(NULL)))
+$(eval $(call board-cmd,gdb,gdb,))
+$(eval $(call board-cmd,ddd,ddd,))
 
 clean::
 	rm -rf $(BUILD_DIR) $(GENERATED_BINS)

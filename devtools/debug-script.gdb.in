@@ -1,6 +1,6 @@
 
 define connect
-	target remote | openocd -c 'debug_level 0' -f board/st_nucleo_f4.cfg -c 'gdb_port pipe' -l /dev/null 2> /dev/null
+	target remote | @OPENOCD_BIN@ -c 'debug_level 0' @OPENOCD_OPT@ -c 'gdb_port pipe' -l /dev/null 2> /dev/null
 end
 
 define simple-reset
