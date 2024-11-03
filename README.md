@@ -15,4 +15,4 @@ https://github.com/libopencm3/libopencm3-template.git
 * libopencm3 contient la bibliothèque permettant de programmer la carte STM32
 * common/ contient des fichiers pouvant être utilisés dans plusieurs projets
 * blink/ est un petit projet montrant comment faire clignoter une LED
-* projet/ est là où vous trouverez un point de départ pour votre projet
+* TP1/ est là où vous trouverez un point de départ pour le premier TP
