@@ -1,9 +1,9 @@
 #include <errno.h>
+#include <libopencm3/stm32/usart.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <sys/times.h>
 #include <sys/unistd.h>
-#include <libopencm3/stm32/usart.h>
 
 #undef errno
 extern int errno;
@@ -12,16 +12,17 @@ extern int errno;
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 
 void _exit(int status) {
-  while(1);
+    while (1)
+        ;
 }
 
 int _open(const char *pathname, int flags, mode_t mode) {
-    errno=ENOSYS;
+    errno = ENOSYS;
     return -1;
 }
 
 int _close(int file) {
-    errno=ENOSYS;
+    errno = ENOSYS;
     return -1;
 }
 
@@ -36,38 +37,38 @@ int _fork(void) {
 }
 
 int _kill(int pid, int sig) {
-  errno = ENOSYS;
-  return (-1);
+    errno = ENOSYS;
+    return (-1);
 }
 
 int _link(char *old, char *new) {
-  errno = ENOSYS;
-  return -1;
+    errno = ENOSYS;
+    return -1;
 }
 
 int _lseek(int file, int ptr, int dir) {
-  errno=ENOSYS;
-  return -1;
+    errno = ENOSYS;
+    return -1;
 }
 
 int _fstat(int file, struct stat *st) {
-  errno=ENOSYS;
-  return -1;
+    errno = ENOSYS;
+    return -1;
 }
 
 int _stat(const char *filepath, struct stat *st) {
-    errno=ENOSYS;
+    errno = ENOSYS;
     return -1;
 }
 
 clock_t _times(struct tms *buf) {
-   errno=ENOSYS;
-   return -1;
+    errno = ENOSYS;
+    return -1;
 }
 
 int _unlink(char *name) {
-   errno = ENOSYS;
-   return -1;
+    errno = ENOSYS;
+    return -1;
 }
 
 int _wait(int status) {
@@ -80,9 +81,7 @@ int _wait(int status) {
  Return current process ID (only one process).
 */
 
-int _getpid(void) {
-  return 1;
-}
+int _getpid(void) { return 1; }
 
 /*
  isatty
@@ -91,7 +90,7 @@ int _getpid(void) {
 */
 
 int _isatty(int file) {
-    switch (file){
+    switch (file) {
     case STDOUT_FILENO:
     case STDERR_FILENO:
     case STDIN_FILENO:
@@ -116,8 +115,9 @@ int _isatty(int file) {
 
 /*
  read
- Read a character to a file. `libc' subroutines will use this system routine for input from all files, including stdin
- Returns -1 on error or blocks until the number of characters have been read.
+ Read a character to a file. `libc' subroutines will use this system routine for
+ input from all files, including stdin Returns -1 on error or blocks until the
+ number of characters have been read.
  */
 
 int _read(int file, char *ptr, int len) {
@@ -126,9 +126,10 @@ int _read(int file, char *ptr, int len) {
     switch (file) {
     case STDIN_FILENO:
         for (n = 0; n < len; n++) {
-	  while ((STDIN_USART(SR) & (1<<5)) == 0) {}
-	  *ptr++ = STDIN_USART(DR) & 0xff;
-	  num++;
+            while ((STDIN_USART(SR) & (1 << 5)) == 0) {
+            }
+            *ptr++ = STDIN_USART(DR) & 0xff;
+            num++;
         }
         break;
     default:
@@ -140,8 +141,9 @@ int _read(int file, char *ptr, int len) {
 
 /*
  write
- Write a character to a file. `libc' subroutines will use this system routine for output to all files, including stdout
- Returns -1 on error or number of bytes sent
+ Write a character to a file. `libc' subroutines will use this system routine
+ for output to all files, including stdout Returns -1 on error or number of
+ bytes sent
  */
 
 int _write(int file, char *ptr, int len) {
@@ -150,15 +152,17 @@ int _write(int file, char *ptr, int len) {
     case STDOUT_FILENO: /* stdout */
         for (n = 0; n < len; n++) {
 
-    	  while ((STDOUT_USART(SR) & (1<<7)) == 0) {}
-          STDOUT_USART(DR) = *ptr++;
+            while ((STDOUT_USART(SR) & (1 << 7)) == 0) {
+            }
+            STDOUT_USART(DR) = *ptr++;
         }
         break;
     case STDERR_FILENO: /* stderr */
         for (n = 0; n < len; n++) {
 
-    	  while ((STDERR_USART(SR) & (1<<7)) == 0) {}
-          STDERR_USART(DR) = *ptr++;
+            while ((STDERR_USART(SR) & (1 << 7)) == 0) {
+            }
+            STDERR_USART(DR) = *ptr++;
         }
         break;
     default:
@@ -177,24 +181,23 @@ int _write(int file, char *ptr, int len) {
 caddr_t _sbrk(int incr) {
 
     extern char _ebss; /* Defined by the linker */
-    static char *heap_top=&_ebss;
+    static char *heap_top = &_ebss;
 
-    char *prev_heap_top=heap_top;
+    char *prev_heap_top = heap_top;
 
-    register char * stack_bottom ;
+    register char *stack_bottom;
 
-    __asm__ __volatile__ ("MRS %0, msp\n" : "=r" (stack_bottom) );
+    __asm__ __volatile__("MRS %0, msp\n" : "=r"(stack_bottom));
 
-     if (heap_top + incr + 0x100 > stack_bottom)
-     {
-       _write (STDERR_FILENO, "Out of heap space !!!\r\n", 23);
-       errno = ENOMEM;
-       return  (caddr_t) -1;
-       exit(255);
-     } else {
-       heap_top += incr;
-       return (caddr_t) prev_heap_top;
-     }
+    if (heap_top + incr + 0x100 > stack_bottom) {
+        _write(STDERR_FILENO, "Out of heap space !!!\r\n", 23);
+        errno = ENOMEM;
+        return (caddr_t)-1;
+        exit(255);
+    } else {
+        heap_top += incr;
+        return (caddr_t)prev_heap_top;
+    }
 }
 
 /*
@@ -203,7 +206,7 @@ caddr_t _sbrk(int incr) {
  For a minimal environment, this empty list is adequate:
  */
 
-char *__env[1] = { 0 };
+char *__env[1] = {0};
 char **environ = __env;
 
 #pragma GCC diagnostic pop

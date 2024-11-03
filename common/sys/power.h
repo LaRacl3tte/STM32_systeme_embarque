@@ -1,5 +1,5 @@
 
-typedef enum {scale1=3,scale2=2,scale3=1} VOS;
+typedef enum { scale1 = 3, scale2 = 2, scale3 = 1 } VOS;
 
 void set_voltage_scale(VOS scale);
 
