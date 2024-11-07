@@ -137,17 +137,17 @@ GENERATED_BINS += $(LDSCRIPT)
 endif
 
 # Need a special rule to have a bin dir
-$(BUILD_DIR)/%.o: %.c
+$(BUILD_DIR)/%.o: %.c $(LIBDEPS)
 	@printf "  CC\t$<\n"
 	@mkdir -p $(dir $@)
 	$(Q)$(CC) $(TGT_CFLAGS) $(CFLAGS) $(TGT_CPPFLAGS) $(CPPFLAGS) -o $@ -c $<
 
-$(BUILD_DIR)/%.o: %.cxx
+$(BUILD_DIR)/%.o: %.cxx $(LIBDEPS)
 	@printf "  CXX\t$<\n"
 	@mkdir -p $(dir $@)
 	$(Q)$(CXX) $(TGT_CXXFLAGS) $(CXXFLAGS) $(TGT_CPPFLAGS) $(CPPFLAGS) -o $@ -c $<
 
-$(BUILD_DIR)/%.o: %.S
+$(BUILD_DIR)/%.o: %.S $(LIBDEPS)
 	@printf "  AS\t$<\n"
 	@mkdir -p $(dir $@)
 	$(Q)$(CC) $(TGT_ASFLAGS) $(ASFLAGS) $(TGT_CPPFLAGS) $(CPPFLAGS) -o $@ -c $<
