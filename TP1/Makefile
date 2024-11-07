@@ -3,7 +3,6 @@ BUILD_DIR = bin
 
 SHARED_DIR = ../common
 CFILES = main.c
-CFILES += platform.c
 CFILES += sys/clock.c
 CFILES += sys/init.c
 CFILES += sys/power.c
