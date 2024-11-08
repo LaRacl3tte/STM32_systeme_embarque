@@ -84,15 +84,22 @@ int main(void)
     init_LD2();
     init_PB();
 
-    while (1)
-    {
+    // while (1)
+    // {
+    //     if (GPIOC_IDR & (1 << 13)) {
+    //         GPIOA_ODR &= ~(1 << 5);
+    //     }
+    //     else {
+    //         GPIOA_ODR |= 1 << 5;
+    //     }
+    // }
 
-        if (GPIOC_IDR & (1 << 13)) {
-            GPIOA_ODR &= ~(1 << 5);
-        }
-        else {
-            GPIOA_ODR |= 1 << 5;
-        }
+    while(1){
+        GPIOA_BSRR = GPIO5;           
+        tempo_500ms();
+        GPIOA_BSRR = GPIO5 << 16;     
+        tempo_500ms();
     }
+    
     return 0;
 }
