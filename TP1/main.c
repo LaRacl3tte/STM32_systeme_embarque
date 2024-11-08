@@ -83,6 +83,8 @@ int main(void)
 
     init_LD2();
     init_PB();
+    _putc(0x0A);
+    _putc(0X0D);
 
     // while (1)
     // {
@@ -94,26 +96,30 @@ int main(void)
     //     }
     // }
 
-    while (1)
-    {
-        if (GPIOC_IDR & (1 << 13))
-        {
-            GPIOA_BSRR = GPIO5 << 16;
-            tempo_500ms();
-            tempo_500ms();
-            tempo_500ms();
-            tempo_500ms();
-            GPIOA_BSRR = GPIO5;
-            tempo_500ms();
-            tempo_500ms();
-            tempo_500ms();
-            tempo_500ms();
-        }
-        else
-        {
-            GPIOA_BSRR = GPIO5;
-        }
-    }
+
+    // while (1)
+    // {
+    //     if (GPIOC_IDR & (1 << 13))
+    //     {
+    //         GPIOA_BSRR = GPIO5 << 16;
+    //         tempo_500ms();
+    //         tempo_500ms();
+    //         tempo_500ms();
+    //         tempo_500ms();
+    //         GPIOA_BSRR = GPIO5;
+    //         tempo_500ms();
+    //         tempo_500ms();
+    //         tempo_500ms();
+    //         tempo_500ms();
+    //     }
+    //     else
+    //     {
+    //         GPIOA_BSRR = GPIO5;
+    //     }
+    // }
+
+
+
 
     return 0;
 }
