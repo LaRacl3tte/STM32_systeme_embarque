@@ -94,12 +94,26 @@ int main(void)
     //     }
     // }
 
-    while(1){
-        GPIOA_BSRR = GPIO5;           
-        tempo_500ms();
-        GPIOA_BSRR = GPIO5 << 16;     
-        tempo_500ms();
+    while (1)
+    {
+        if (GPIOC_IDR & (1 << 13))
+        {
+            GPIOA_BSRR = GPIO5 << 16;
+            tempo_500ms();
+            tempo_500ms();
+            tempo_500ms();
+            tempo_500ms();
+            GPIOA_BSRR = GPIO5;
+            tempo_500ms();
+            tempo_500ms();
+            tempo_500ms();
+            tempo_500ms();
+        }
+        else
+        {
+            GPIOA_BSRR = GPIO5;
+        }
     }
-    
+
     return 0;
 }
