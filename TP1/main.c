@@ -11,8 +11,8 @@
 void init_LD2(void) {
     /* on positionne ce qu'il faut dans les différents
        registres concernés */
-    RCC_AHB1ENR |= 0x01;
-    GPIOA_MODER = (GPIOA_MODER & 0xFFFFF3FF) | 0x00000400;
+    RCC_AHB1ENR |= 0x01; // Activation du GPIOA
+    GPIOA_MODER = (GPIOA_MODER & 0xFFFFF3FF) | 0x00000400; //On mets GPIOA_MODER à 01 : General purpose output
     GPIOA_OTYPER &= ~(0x1 << 5);
     GPIOA_OSPEEDR |= 0x03 << 10;
     GPIOA_PUPDR &= 0xFFFFF3FF;
