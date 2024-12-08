@@ -64,14 +64,22 @@ void _puts(const char *c)
 
 char _getc(void)
 {
-    /* À compléter */
-    return 0;
+    // Attendre que le registre de réception contienne des données
+    // Le bit 5 (RXNE) du registre de status indique qu'un caractère est disponible
+    while ((USART2_SR & 0x20) == 0)
+    {
+        // Attente active jusqu'à ce qu'un caractère soit reçu
+        // Le programme reste bloqué ici jusqu'à la réception d'un caractère
+    }
+
+    // Lire et retourner le caractère reçu
+    return (char)USART2_DR;
 }
 
 int main(void)
 {
     printf("\e[2J\e[1;1H\r\n");
-    printf("\e[01;32m*** Welcome to Nucleo F446 ! ***\e[00m\r\n");
+    printf("\e[01;32m Welcome to Nucleo F446 ! \e[00m\r\n");
 
     printf("\e[01;31m\t%08lx-%08lx-%08lx\e[00m\r\n", DESIG_UNIQUE_ID0,
            DESIG_UNIQUE_ID1, DESIG_UNIQUE_ID2);
@@ -80,7 +88,7 @@ int main(void)
     printf("APB1CLK= %9lu Hz\r\n", get_APB1CLK());
     printf("APB2CLK= %9lu Hz\r\n", get_APB2CLK());
     printf("\r\n");
-
+    
     init_LD2();
     init_PB();
     _putc(0x0A);
@@ -118,8 +126,18 @@ int main(void)
     //     }
     // }
 
-
-
+    while (1)
+    {
+        char c = _getc();
+        if (c == 'a')
+        {
+            _putc(0x0A);
+        }
+        else
+        {
+            _putc(c);
+        }
+    }
 
     return 0;
 }
